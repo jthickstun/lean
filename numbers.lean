@@ -36,34 +36,26 @@ calc (nat.succ m)*(nat.succ n) = (1+m)*(1+n) : by rw [←nat.one_add m, ←nat.o
            ... = 1 * 1 + m * 1 + (1 + m) * n : by rw [left_distrib, right_distrib]
            ... = 1 + m + n + m*n             : by rw [one_mul, mul_one, right_distrib]; simp
 
--- I worked pretty hard for this; is there an easier way?
 lemma unique_unit (m n : ℕ) (H : m*n = 1) : m = 1 ∧ n = 1 :=
-begin
-induction m,
-case nat.zero { 
-  induction n,
-  case nat.zero { from absurd H zero_ne_one },
-  case nat.succ n {
-    have h: 0 = 1, from zero_mul (nat.succ n) ▸ H,
-    show _, from absurd h zero_ne_one 
-  }
- },
-case nat.succ m ih {
-  induction n,
-  case nat.zero { from absurd H zero_ne_one },
-  case nat.succ n {
-    have h : 1 + 0 = 1 + (m + n + m*n), from
-    calc 1 + 0 = 1                 : rfl
-           ... = 1 + m + n + m*n   : by rw [←foil, H]
-           ... = 1 + (m + n + m*n) : by simp,
+begin revert n, induction m,
+case nat.zero { intros; from 
+  have h : 0 = 1, by rw [←zero_mul]; assumption,
+  absurd h zero_ne_one
+},
+case nat.succ n ih {intro m, intro H; cases m with m,
+  { from absurd H zero_ne_one },
+  { have h : 1 + 0 = 1 + (m + n + m*n), from
+    calc 1 + 0 = 1                            : rfl
+           ... = (nat.succ n) * (nat.succ m)  : by rw [←H]
+           ... = 1 + (m + n + m*n)            : by rw [foil]; simp,
     have hz : m + (n + m*n) = 0, by simp [nat.add_left_cancel h],
-    show _, from and.intro
-      (have hmz: m = 0, from nat.eq_zero_of_add_eq_zero_right hz,
-       show nat.succ m = 1, by rw [hmz])
+    from and.intro
       (have hmnz: n + m * n = 0, from nat.eq_zero_of_add_eq_zero_left hz,
        have hnz: n = 0, from nat.eq_zero_of_add_eq_zero_right hmnz,
        show nat.succ n = 1, by rw [hnz])
-   }
+      (have hmz: m = 0, from nat.eq_zero_of_add_eq_zero_right hz,
+       show nat.succ m = 1, by rw [hmz])
+  }
 }
 end
 
