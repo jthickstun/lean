@@ -6,9 +6,6 @@ namespace number_theory
 Propositional logic is decidable; is there a tactic that will just do these for me?
 -/
 
-lemma contrapositive (p q : Prop) (hpq : p → q) (hnq : ¬q) : ¬p :=
-assume hp : p, show false, from absurd (hpq hp) hnq
-
 lemma demorgan (p q : Prop) : ¬(p ∨ q) ↔ ¬p ∧ ¬q :=
 iff.intro
 (assume h : ¬(p ∨ q),
@@ -76,7 +73,7 @@ have (m = 0 ∨ n = 0) → m*n = 0, from
   assume h : m = 0 ∨ n = 0, or.elim h
     (assume hm : m = 0, (eq.symm hm) ▸ zero_mul n)
     (assume hn : n = 0, (eq.symm hn) ▸ mul_zero m),
-have ¬(m = 0 ∨ n = 0), from (contrapositive (m = 0 ∨ n = 0) (m*n = 0) this) hmn,
+have ¬(m = 0 ∨ n = 0), from (mt this) hmn,
 (iff.elim_left (demorgan (m=0) (n=0))) this
 
 /- 
