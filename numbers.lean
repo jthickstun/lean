@@ -37,24 +37,21 @@ calc (nat.succ m)*(nat.succ n) = (1+m)*(1+n) : by rw [←nat.one_add m, ←nat.o
            ... = 1 + m + n + m*n             : by rw [one_mul, mul_one, right_distrib]; simp
 
 lemma unique_unit (m n : ℕ) (H : m*n = 1) : m = 1 ∧ n = 1 :=
-begin revert n, induction m,
-case nat.zero { intros; from 
-  have h : 0 = 1, by rw [←zero_mul]; assumption,
-  absurd h zero_ne_one
-},
-case nat.succ n ih {intro m, intro H; cases m with m,
-  { from absurd H zero_ne_one },
+begin revert m, induction n with n ih,
+{ intros; contradiction },
+{intro m, intro H; cases m with m,
+  { have h01 : 0 = 1, by rw [←H]; simp, contradiction },
   { have h : 1 + 0 = 1 + (m + n + m*n), from
     calc 1 + 0 = 1                            : rfl
-           ... = (nat.succ n) * (nat.succ m)  : by rw [←H]
+           ... = (nat.succ m) * (nat.succ n)  : by rw [←H]
            ... = 1 + (m + n + m*n)            : by rw [foil]; simp,
     have hz : m + (n + m*n) = 0, by simp [nat.add_left_cancel h],
     from and.intro
+      (have hmz: m = 0, from nat.eq_zero_of_add_eq_zero_right hz,
+       show nat.succ m = 1, by rw [hmz])
       (have hmnz: n + m * n = 0, from nat.eq_zero_of_add_eq_zero_left hz,
        have hnz: n = 0, from nat.eq_zero_of_add_eq_zero_right hmnz,
        show nat.succ n = 1, by rw [hnz])
-      (have hmz: m = 0, from nat.eq_zero_of_add_eq_zero_right hz,
-       show nat.succ m = 1, by rw [hmz])
   }
 }
 end
@@ -233,13 +230,13 @@ end
 -- First we prove existence
 lemma prime_factorization (n : ℕ) : n ≠ 0 → ∃ l : list ℕ, plist l ∧ product l = n :=
 begin
-induction n,
-case nat.zero n {
-  from assume h : 0 ≠ 0, absurd (eq.refl 0) h
+induction n using nat.case_strong_induction_on with n ih,
+{
+  intros; contradiction
 },
-case nat.succ n ih { 
+{
   let m := nat.succ n,
-  from assume h : nat.succ n ≠ 0,
+  from assume h : m ≠ 0,
   have one_or_more : m = 1 ∨ (m ≠ 0 ∧ m ≠ 1), by {
     cases n, exact or.inl rfl, exact or.inr (and.intro h 
       (λ k, nat.no_confusion k (λ k, nat.no_confusion k)))
@@ -266,8 +263,14 @@ case nat.succ n ih {
       exists.elim hab1 (assume b, assume hprod : m = a*b,
       -- need strong induction for these
       -- also can I induction on whole numbers instead of naturals?
-      have hrl : ∃ rl, plist rl ∧ product rl = a, from sorry,
-      have hsl : ∃ sl, plist sl ∧ product sl = b, from sorry,
+      have hrl : ∃ rl, plist rl ∧ product rl = a, from 
+        have han : a ≤ n, from sorry,
+        have hanz : a ≠ 0, from sorry,
+        ih a han hanz,
+      have hsl : ∃ sl, plist sl ∧ product sl = b, from
+        have hbn : b ≤ n, from sorry,
+        have hbnz : b ≠ 0, from sorry,
+        ih b hbn hbnz,
       exists.elim hrl (assume rl : list ℕ, assume hrla: plist rl ∧ product rl = a,
       exists.elim hsl (assume sl : list ℕ, assume hslb: plist sl ∧ product sl = b,
       exists.intro (rl ++ sl)

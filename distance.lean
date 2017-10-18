@@ -10,31 +10,31 @@ def dist : ℕ → ℕ → ℕ
 
 lemma dist_rfl (n : ℕ) : dist n n = 0 :=
 begin
-induction n,
-case nat.zero { reflexivity },
-case nat.succ n ih { simp [dist, ih] }
+induction n with n ih,
+{ reflexivity },
+{ simp [dist, ih] }
 end
 
 lemma dist_zero_left (m : ℕ) : dist 0 m = m := by cases m; reflexivity
 lemma dist_zero_right (n : ℕ) : dist n 0 = n := by cases n; reflexivity
 
 lemma dist_add (n m : ℕ) : dist n (n+m) = m :=
-begin induction n,
+begin induction n with n ih,
   { by simp [dist_zero_left] },
-  { from calc dist (nat.succ a) (nat.succ a + m) 
-            = dist (nat.succ a) (nat.succ (a + m)) : by simp
-        ... = dist a (a + m)                       : by simp [dist]
-        ... = m                                    : ih_1
+  { from calc dist (nat.succ n) (nat.succ n + m) 
+            = dist (nat.succ n) (nat.succ (n + m)) : by simp
+        ... = dist n (n + m)                       : by simp [dist]
+        ... = m                                    : ih
   }
 end
 
 lemma add_dist (n m : ℕ) : dist (n+m) n = m :=
-begin induction n,
+begin induction n with n ih,
   { by simp [dist_zero_right] },
-  { from calc dist (nat.succ a + m) (nat.succ a) 
-            = dist (nat.succ (a + m)) (nat.succ a) : by simp
-        ... = dist (a + m) a                       : by simp [dist]
-        ... = m                                    : ih_1
+  { from calc dist (nat.succ n + m) (nat.succ n) 
+            = dist (nat.succ (n + m)) (nat.succ n) : by simp
+        ... = dist (n + m) n                       : by simp [dist]
+        ... = m                                    : ih
   }
 end
 
@@ -44,9 +44,9 @@ by rw [h]; simp [add_dist]
 lemma dist_iden (m n : ℕ) : dist m n = 0 ↔ m = n :=
 iff.intro
 (begin
-revert n, induction m,
-case nat.zero { intro n, simp [dist_zero_left]; from eq.symm },
-case nat.succ m ih { intro n, cases n with n,
+revert n, induction m with m ih,
+{ intro n, simp [dist_zero_left]; from eq.symm },
+{ intro n, cases n with n,
   { simp [dist]; intro; assumption },
   { simp [dist]; intro h; rw [(ih n) h] } } 
 end)
@@ -54,24 +54,24 @@ end)
 
 lemma dist_symm (m n : ℕ) : dist m n = dist n m :=
 begin
-revert n, induction m,
-case nat.zero { intro n; induction n; reflexivity },
-case nat.succ m ih { intro n, cases n with n,
+revert n, induction m with m ih,
+{ intro n; induction n; reflexivity },
+{ intro n, cases n with n,
   { simp [dist_zero_left, dist_zero_right] },
   { simp [dist, ih n] } }
 end
 
 lemma dist_cancel (n m k : ℕ) : dist (n+k) (m+k) = dist n m :=
-begin revert n m, induction k,
-  case nat.zero { intros, simp },
-  case nat.succ m ih { intros, apply ih }
+begin revert n m, induction k with k ih,
+{ intros, simp },
+{ intros, apply ih }
 end
 
 lemma dist_mul (n m k : ℕ) : dist (n*k) (m*k) = (dist n m)*k :=
 begin
-revert n, induction m,
-case nat.zero { intro n; simp [dist_zero_right] },
-case nat.succ m ih { intro n; cases n with n,
+revert n, induction m with m ih,
+{ intro n; simp [dist_zero_right] },
+{ intro n; cases n with n,
   { simp [dist_zero_left] },
   { simp [dist, nat.succ_mul]; 
     repeat { rw [nat.add_comm k] }; 
@@ -84,19 +84,19 @@ end
 
 lemma bounded_dist {n m k : ℕ} (hn : n < k) (hm : m < k) : dist n m < k :=
 begin
-revert n m, induction k,
-  case nat.zero { intros, from absurd (nat.eq_zero_of_le_zero hn) (nat.succ_ne_zero n) },
-  case nat.succ k ih { intros, cases n with n,
-    { cases m with m; simp [dist]; assumption },
-    { cases m with m,
-      { simp [dist]; assumption },
-      { simp [dist];
-        have hnk : n < k, from nat.lt_of_succ_lt_succ hn,
-        have hmk : m < k, from nat.lt_of_succ_lt_succ hm,
-        apply nat.lt.step; apply ih hnk hmk; assumption
-      }
+revert n m, induction k with k ih,
+{ intros, from absurd (nat.eq_zero_of_le_zero hn) (nat.succ_ne_zero n) },
+{ intros, cases n with n,
+  { cases m with m; simp [dist]; assumption },
+  { cases m with m,
+    { simp [dist]; assumption },
+    { simp [dist];
+      have hnk : n < k, from nat.lt_of_succ_lt_succ hn,
+      have hmk : m < k, from nat.lt_of_succ_lt_succ hm,
+      apply nat.lt.step; apply ih hnk hmk; assumption
     }
   }
+}
 end
 
 lemma dist_sub {n m : ℕ} (hm : m ≤ n) : dist n (n - m) = m :=
