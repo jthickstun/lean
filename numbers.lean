@@ -142,12 +142,8 @@ exists_unique.intro (n/m)
 Divisors
 -/
 
--- see dvd for commutative semiring (same definition; I should use the built-in stuff)
-def divides (m n : ℕ) : Prop := ∃ k : ℕ, k*m = n
-infix ` || ` := divides
-
-def irreducible (p : ℕ) : Prop := p ≠ 0 ∧ p ≠ 1 ∧ ∀ k : ℕ, (k || p) → (k = 1 ∨ k = p)
-def prime (p : ℕ) : Prop := p ≠ 0 ∧ p ≠ 1 ∧ ∀ m n, (p || m*n) → ((p || m) ∨ (p || n))
+def irreducible (p : ℕ) : Prop := p ≠ 0 ∧ p ≠ 1 ∧ ∀ k : ℕ, (k ∣ p) → (k = 1 ∨ k = p)
+def prime (p : ℕ) : Prop := p ≠ 0 ∧ p ≠ 1 ∧ ∀ m n, (p ∣ m*n) → ((p ∣ m) ∨ (p ∣ n))
 
 /-
 This is actually the opposite direction of the lemma attributed to Euclid.
@@ -166,34 +162,35 @@ elegant? Most of the book-keeping seems to come from chasing down quantifiers an
 propositonal connectives, so it's not clear whether tactics can help all that much.
 -/
 lemma euclid (p : ℕ) : prime p → irreducible p  := 
-(assume hprime : p ≠ 0 ∧ p ≠ 1 ∧ ∀ m n, (p || m*n) → ((p || m) ∨ (p || n)),
-have h : ∀ m n, (p || m*n) → ((p || m) ∨ (p || n)), from and.elim_right (and.elim_right hprime),
+(assume hprime : p ≠ 0 ∧ p ≠ 1 ∧ ∀ m n, (p ∣ m*n) → ((p ∣ m) ∨ (p ∣ n)),
+have h : ∀ m n, (p ∣ m*n) → ((p ∣ m) ∨ (p ∣ n)), from and.elim_right (and.elim_right hprime),
 and.intro (and.elim_left hprime) (and.intro (and.elim_left (and.elim_right hprime)) 
-(assume k, assume hkp : k || p, 
-exists.elim hkp (
-(assume r, assume hrkp : r*k = p,
-  have nzrk : r ≠ 0 ∧ k ≠ 0, from no_zero_divisors r k ((eq.symm hrkp) ▸ (and.left hprime)),
+(assume k, assume hkp : k ∣ p, 
+dvd.elim hkp (
+(assume r, assume hrkp : p = k*r,
+  have r*k ≠ 0, by simp only [nat.mul_comm]; rw [←hrkp]; apply (and.left hprime),
+  have nzrk : r ≠ 0 ∧ k ≠ 0, from no_zero_divisors r k this,
   have hrgz : r > 0, from nat.pos_of_ne_zero (and.left nzrk),
   have hkgz : k > 0, from nat.pos_of_ne_zero (and.right nzrk),
-  have p || r*k, from exists.intro 1 (eq.symm (nat.one_mul p) ▸ (eq.symm hrkp)),
+  have p ∣ r*k, from exists.intro 1 (by simp [hrkp]),
   or.elim (h r k this)
-    (assume hpr : p || r, exists.elim hpr (assume s, assume hspr : s*p = r,
+    (assume hpr : p ∣ r, dvd.elim hpr (assume s, assume hspr : r = p*s,
     have 1*r = (s*k)*r, from
     calc 1*r = r           : one_mul r
-     ...     = s*(r*k)     : eq.symm hrkp ▸ eq.symm hspr
-     ...     = s*(k*r)     : (nat.mul_comm k r) ▸ (eq.refl (s*(k*r)))
+     ...     = s*p         : by simp [hspr,nat.mul_comm]
+     ...     = s*(k*r)     : by simp [hrkp,nat.mul_comm]
      ...     = (s*k)*r     : eq.symm (nat.mul_assoc s k r),
     have s*k = 1, from nat.eq_of_mul_eq_mul_right hrgz (eq.symm this),
     or.intro_left _ (and.right (unique_unit s k this))))
-    (assume hpk : p || k, exists.elim hpk (assume s, assume hspk : s*p = k,
+    (assume hpk : p ∣ k, dvd.elim hpk (assume s, assume hspk : k = p*s,
     have 1*k = (s*r)*k, from 
     calc 1*k = k           : one_mul k
-     ...     = s*p         : eq.symm hspk ▸ (eq.refl k)
-     ...     = s*(r*k)     : eq.symm hrkp ▸ (eq.refl (s*p))
+     ...     = s*p         : by rw [hspk]; simp
+     ...     = s*(r*k)     : by simp [hrkp]
      ...     = (s*r)*k     : eq.symm (nat.mul_assoc s r k),
     have 1 = s*r, from nat.eq_of_mul_eq_mul_right hkgz this,
     have s = 1, from and.left (unique_unit s r (eq.symm this)),
-    have 1*p = k, from (this ▸ hspk),
+    have 1*p = k, by simp [this,hspk],
     or.intro_right _ (eq.symm (this ▸ eq.symm (nat.one_mul p))))))))))
 
 /-
