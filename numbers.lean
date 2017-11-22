@@ -200,6 +200,8 @@ induction n using nat.case_strong_induction_on with n ih,
         (show plist [], from rfl)
         (show product [] = m, by simp [h1, product])))
     (assume hg1: m ≠ 0 ∧ m ≠ 1,
+    -- this is the big excluded middle claim!
+    -- we did all that legwork in .decidable_relations for this
     have h : irreducible m ∨ composite m, by {
       by_cases (is_composite m = tt) with hicm,
       { simp [computable_composite] at hicm, 
