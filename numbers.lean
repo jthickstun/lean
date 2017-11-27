@@ -8,37 +8,6 @@ import .decidable_relations
 namespace number_theory
 
 /-
-Basic results
--/
-
-lemma foil (m n : ℕ) : (nat.succ m)*(nat.succ n) = 1 + m + n + m*n := 
-calc (nat.succ m)*(nat.succ n) = (1+m)*(1+n) : by rw [←nat.one_add m, ←nat.one_add n]
-           ... = 1 * 1 + m * 1 + (1 + m) * n : by rw [left_distrib, right_distrib]
-           ... = 1 + m + n + m*n             : by rw [one_mul, mul_one, right_distrib]; simp
-
-lemma unique_unit (m n : ℕ) (H : m*n = 1) : m = 1 ∧ n = 1 :=
-begin revert m, induction n with n ih,
-{ intros; contradiction },
-{intro m, intro H; cases m with m,
-  { have h01 : 0 = 1, by rw [←H]; simp, contradiction },
-  { have h : 1 + 0 = 1 + (m + n + m*n), from
-    calc 1 + 0 = 1                            : rfl
-           ... = (nat.succ m) * (nat.succ n)  : by rw [←H]
-           ... = 1 + (m + n + m*n)            : by rw [foil]; simp,
-    have hz : m + (n + m*n) = 0, by simp [nat.add_left_cancel h],
-    from and.intro
-      (have hmz: m = 0, from nat.eq_zero_of_add_eq_zero_right hz,
-       show nat.succ m = 1, by rw [hmz])
-      (have hmnz: n + m * n = 0, from nat.eq_zero_of_add_eq_zero_left hz,
-       have hnz: n = 0, from nat.eq_zero_of_add_eq_zero_right hmnz,
-       show nat.succ n = 1, by rw [hnz])
-  }
-}
-end
-
-/-
-This lemma is fundamental.
-
 Uniqueness is subtle as always. Most proofs of this I saw come in one of two flavors:
   (i) Assume two different (distinct) pairs and derive a contradiction
   (ii) Show that -1 < difference < 1 and conclude that there is no difference
@@ -62,7 +31,7 @@ exists_unique.intro (n/m)
                     ...  = m*(n/m) + r'  : by rw [←(and.left hr')],
     show r' = n%m, by simp [add_left_cancel this])) 
   (assume k' : ℕ, assume he: ∃! (r : ℕ), n = m * k' + r ∧ r < m,
-  exists_unique.elim he 
+  exists_unique.elim he
     (assume r' : ℕ, assume hnrk : n = m*k' + r' ∧ r' < m,
     assume ha : ∀ (y : ℕ), n = m*k' + y ∧ y < m → y = r',
     have hdiv : m*(n/m) + (n%m) = n, by simp [nat.mod_add_div n m],
@@ -163,7 +132,7 @@ dvd.elim hkp (
      ...     = s*(k*r)     : by simp [hrkp,nat.mul_comm]
      ...     = (s*k)*r     : eq.symm (nat.mul_assoc s k r),
     have s*k = 1, from nat.eq_of_mul_eq_mul_right hrgz (eq.symm this),
-    or.intro_left _ (and.right (unique_unit s k this))))
+    or.intro_left _ (and.right (nat.unique_unit this))))
     (assume hpk : p ∣ k, dvd.elim hpk (assume s, assume hspk : k = p*s,
     have 1*k = (s*r)*k, from 
     calc 1*k = k           : one_mul k
@@ -171,7 +140,7 @@ dvd.elim hkp (
      ...     = s*(r*k)     : by simp [hrkp]
      ...     = (s*r)*k     : eq.symm (nat.mul_assoc s r k),
     have 1 = s*r, from nat.eq_of_mul_eq_mul_right hkgz this,
-    have s = 1, from and.left (unique_unit s r (eq.symm this)),
+    have s = 1, from and.left (nat.unique_unit (eq.symm this)),
     have 1*p = k, by simp [this,hspk],
     or.intro_right _ (eq.symm (this ▸ eq.symm (nat.one_mul p))))))))))
 
@@ -283,20 +252,185 @@ induction n using nat.case_strong_induction_on with n ih,
 end
 
 /-
-Fundamental Theorem of Arithmetic (very incomplete!)
-To finish we need to prove a bunch of stuff about sorted lists of primes.
-At the moment I don't see any way to avoid defining a sort function to do this.
+The Fundamental Theorem of Arithmetic
 -/
+
+-- the statement of this lemma is a bit obscure, the idea is that:
+--   (1) if (prime) p divides a product of primes then it divides a term in that product (euclid for list)
+--   (2) if the term in (1) is a prime, then p equals that term
+--   (3) if the terms are sorted, then p must be no larger than the first term
+lemma plist_lte
+  {p q : ℕ} 
+  {t : list ℕ}
+  (hp : irreducible p)
+  (hq : irreducible q)
+  (hd : p ∣ product (q :: t))
+  (hl : plist t ∧ sorted (q :: t))
+: p ≤ q :=
+begin
+  have pn1 : p ≠ 1, from hp.right.left,
+  revert q, induction t with q' t' ih,
+  { intro q, intro hq, intro hd, intro hl,
+    simp [product] at hd, simp [irreducible] at hp,
+    have : p = 1 ∨ p = q, from hq.right.right p hd,
+    cases this,
+    { contradiction },
+    { exact nat.le_of_eq a }
+  },
+  { intro q, intro hq, intro hd, intro hl,
+    have hd : p ∣ q * (q' * product t'), by simp [nat.mul_comm]; simp [product] at hd; exact hd,
+    have hpp : prime p, by simp [euclid] at hp; exact hp,
+    have : p ∣ q ∨ p ∣ q' * product t', by exact hpp.right.right q (q' * product t') hd,
+    cases this,
+    { have : p = 1 ∨ p = q, from hq.right.right p a,
+      cases this,
+      { contradiction },
+      { exact nat.le_of_eq a_1 }
+    },
+    { have hqq' : q' ≤ q, from list.lmax_head hl.right,
+      have hiq' : irreducible q', by simp [plist] at hl; exact hl.left,
+      have hd' : p ∣ product (q' :: t'), by simp [product]; exact a,
+      have hl' : plist t' ∧ sorted (q' :: t'),
+      begin
+        apply and.intro,
+        { simp [plist] at hl, exact hl.right.left },
+        { rw [sorted] at hl, from sorry } -- to_bool issues
+      end,
+      have : p ≤ q', from ih hiq' hd' hl',
+      exact nat.le_trans this hqq'
+    }
+  }
+end
 
 theorem prime_uniqueness (n : ℕ) : n ≠ 0 → ∃! l : list ℕ,
   plist l ∧ sorted l ∧ product l = n :=
 begin
-intro hn, apply exists_unique.intro,
-{ have : ∃ l : list ℕ, plist l ∧ product l = n, from prime_factorization n hn,
-  admit
+intro hn,
+have : ∃ l : list ℕ, plist l ∧ product l = n, from prime_factorization n hn,
+apply exists.elim this, intro l, intro hl, 
+--let sl := list.insertion_sort l,
+apply exists_unique.intro (list.insertion_sort l),
+{ have : l ~ list.insertion_sort l, by symmetry; exact list.perm_insertion_sort l,
+  apply and.intro,
+  { exact list.perm_plist this hl.left },
+  { apply and.intro,
+    { exact list.sorted_insertion_sort l },
+    { symmetry, rw [←hl.right], apply list.perm_product this }
+  }
 },
-{ admit },
-{ exact [n] } -- why is this here?
+{ 
+  revert l, induction n using nat.case_strong_induction_on with n ih,
+  {
+    contradiction
+  },
+  { simp at ih, intro l, intro hl, intro sl', intro hsl',
+
+    -- seem to need to state these up-front so they get picked up when we move to cases later
+    have hslprod : product (list.insertion_sort l) = product l,
+      by apply list.perm_product; exact list.perm_insertion_sort l,
+    have hslplist : plist (list.insertion_sort l),
+    begin
+      have : l ~ list.insertion_sort l, by symmetry; exact list.perm_insertion_sort l,
+      exact list.perm_plist this hl.left
+    end,
+    have hslsorted : sorted (list.insertion_sort l) = tt, from list.sorted_insertion_sort l,
+
+    cases (list.insertion_sort l) with p t,
+    { simp [product] at hslprod, rw [←hslprod] at hl, rw [←hl.right] at hsl',
+      exact list.plist_prod_one hsl'.left hsl'.right.right
+    },
+    { cases sl' with q t',
+      { simp [product] at hsl', rw [←hsl'.right.right] at hl, rw [hl.right] at hslprod,
+        exact eq.symm (list.plist_prod_one hslplist hslprod)
+      },
+      { have hiq : irreducible q, by simp [plist] at hsl'; exact hsl'.left,
+        have hip : irreducible p, by simp [plist] at hslplist; exact hslplist.left,
+
+        have hqd : q ∣ product (p :: t),
+        begin
+          have : product (q :: t') = nat.succ n, from hsl'.right.right,
+          simp [product] at this,
+          simp [hl.right] at hslprod, rw [hslprod],
+          exact dvd.intro (product t') this
+        end,
+        have hpd : p ∣ product (q :: t'),
+        begin
+          simp [product,hl.right] at hslprod,
+          rw [hsl'.right.right,←hslprod],
+          exact dvd.intro (product t) (eq.refl (p * product t))
+        end,
+
+        have hpt : plist t ∧ sorted (p :: t),
+        begin
+          apply and.intro,
+          { simp [plist] at hslplist, exact hslplist.right },
+          { exact hslsorted }
+        end,
+        have hqt' : plist t' ∧ sorted (q :: t'),
+        begin
+          apply and.intro,
+          { simp [plist] at hsl', exact hsl'.right.left },
+          { exact hsl'.right.left }
+        end,
+
+        have hplq: p ≤ q, from plist_lte hip hiq hpd hqt',
+        have hqlp : q ≤ p, from plist_lte hiq hip hqd hpt,
+        have hpq: p = q, from le_antisymm hplq hqlp,
+
+        have : q * product t' = nat.succ n, by simp [product] at hsl'; exact hsl'.right.right,
+        have ht' : product t' = nat.succ n / q, 
+          from eq.symm (nat.div_eq_of_eq_mul_right (nat.pos_of_ne_zero hiq.left) (eq.symm this)),
+
+        have hprod : p * product t = nat.succ n, by simp [product] at hslprod; rw [hslprod]; exact hl.right,
+        have ht : product t = nat.succ n / p, 
+          from eq.symm (nat.div_eq_of_eq_mul_right (nat.pos_of_ne_zero hip.left) (eq.symm hprod)),
+
+        let m := product t,
+        have handt : plist t ∧ product t = m, by {apply and.intro, exact hpt.left, simp},
+        have hst : sorted t = tt, by simp [sorted] at hpt; from sorry, -- to_bool issues
+        have handt' : plist t' ∧ sorted t' ∧ product t' = m,
+        begin
+          apply and.intro,
+          { exact hqt'.left },
+          { apply and.intro, 
+            { simp [sorted] at hsl', from sorry }, -- to_bool issues
+            { rw [ht',←hpq,←ht] }
+          }
+        end,
+        have hmt : product t = m, by simp,
+        have hmt': product t' = m, by rw [ht',←hpq,←ht],
+        have hmnz : m ≠ 0, from list.plist_prod_nonzero handt.left,
+        have hmltn : m ≤ n,
+        begin
+          suffices hmltn' : m < nat.succ n, from nat.le_of_lt_succ hmltn',
+          rw [←hprod,←nat.one_mul m,hmt],
+          have h1ltp : 1 < p,
+          begin
+            cases p with p,
+            { have : q ≠ 0, from hiq.left, contradiction },
+            { cases p with p,
+              { have : q ≠ 1, from hiq.right.left, exact absurd (eq.symm hpq) this },
+              { have : nat.succ p ≠ 0, from nat.succ_ne_zero p,
+                have : 0 < nat.succ p, from nat.pos_of_ne_zero this,
+                have : 1 + 0 < 1 + nat.succ p, from nat.add_lt_add_left this 1,
+                simp [nat.one_add] at this, exact this
+              }
+            }
+          end,
+          have hmgt0: m > 0, from nat.pos_of_ne_zero hmnz,
+          exact nat.mul_lt_mul_of_pos_right h1ltp hmgt0
+        end,
+        have hxl : ∃ (l : list ℕ), plist l ∧ product l = m, by existsi t; exact handt,
+        have htt' : t = t',
+        begin
+          have : t' = list.insertion_sort t, from ih m hmltn hmnz hxl t handt t' handt',
+          simp [list.idem_insertion_sort hst] at this, simp [this]
+        end,
+        rw [hpq, htt']
+      }
+    }
+  }
+}
 end
 
 end number_theory
