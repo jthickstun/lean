@@ -1,6 +1,6 @@
 import .definitions
 
-namespace number_theory
+namespace nt
 
 /- 
 We've committed a minor sin here. We use a computational definition of gcd
@@ -50,4 +50,4 @@ begin
   { assumption }
 end
 
-end number_theory
+end nt

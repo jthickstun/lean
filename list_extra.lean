@@ -1,5 +1,6 @@
 import .definitions
 import .nat_extra
+import .decidable_relations
 
 namespace list
 
@@ -14,33 +15,33 @@ induction l1,
 { by simp [product, ih_1] }
 end
 
-lemma plist_concat (l1 l2 : list ℕ) : plist l1 → plist l2 → plist (l1 ++ l2) :=
+lemma plist_concat (l1 l2 : list ℕ) : plist l1 = tt → plist l2 = tt → plist (l1 ++ l2) = tt :=
 begin
 induction l1,
-{ from λ h1 : plist [], λ h2 : plist l2, by simp [h2] },
-{ from λ h1 : plist (a :: a_1), λ h2 : plist l2, and.intro 
-    (and.elim_left h1) 
-    (ih_1 (and.elim_right h1) h2)
+{ intros, by simp [a_1] },
+{ intros, simp [plist] at a_2, simp [plist], apply and.intro,
+  { exact a_2.left },
+  { exact ih_1 a_2.right a_3 }
 }
 end
 
-lemma lmax_head {x y : ℕ} {t : list ℕ} (h : sorted (x :: y :: t)) : y ≤ x := 
+lemma lmax_head {x y : ℕ} {t : list ℕ} (h : sorted (x :: y :: t) = tt) : y ≤ x := 
 begin
   simp [sorted] at h,
-  have : max x (lmax (y :: t)) = x, from sorry, -- to_bool issues
+  have : max x (lmax (y :: t)) = x, exact nat.eq_eq h.right.right,
   have hx : max y (lmax t) ≤ x, by rw [←this]; exact le_max_right x (lmax (y :: t)),
   have hy : y ≤ max y (lmax t), by simp [le_max_left],
   exact nat.le_trans hy hx
 end
 
-lemma plist_prod_nonzero {l : list ℕ} (h : plist l) : product l ≠ 0 :=
+lemma plist_prod_nonzero {l : list ℕ} (h : plist l = tt) : product l ≠ 0 :=
 begin
   induction l with p t ih,
   { simp [product] },
   { simp [product],
-    have ht : plist t, by simp [plist] at h; exact h.right,
+    have ht : plist t = tt, by simp [plist] at h; exact h.right,
     by_cases p = 0 with hp,
-    { simp [plist, number_theory.irreducible] at h, exact absurd hp h.right.right.left },
+    { simp [plist, nt.computable_irreducible] at h, exact absurd hp h.left.left },
     { have hpg0 : product t ≠ 0, from ih ht,
       --this was incredibly annoying; any ideas how we could make this easier?
       have hp : nat.succ (nat.pred p) = p, from nat.succ_pred_eq_of_pos (nat.pos_of_ne_zero hp),
@@ -54,13 +55,13 @@ begin
   }
 end
 
-lemma plist_prod_one {l : list ℕ} (h : plist l) : product l = 1 → l = [] :=
+lemma plist_prod_one {l : list ℕ} (h : plist l = tt) : product l = 1 → l = [] :=
 begin
   cases l with p t,
   { simp },
   { intro, simp [product] at a,
     have : p = 1, from (nat.unique_unit a).left,
-    simp [plist] at h,
+    simp [plist, nt.computable_irreducible] at h,
     have : p ≠ 1, from h.left.right.left,
     contradiction
   }
@@ -109,22 +110,22 @@ induction h,
 { simp [ih_1,ih_2] }
 end
 
-lemma perm_plist {l₁ l₂ : list ℕ} (h : l₁ ~ l₂) (hp : plist l₁) : plist l₂ :=
+lemma perm_plist {l₁ l₂ : list ℕ} (h : l₁ ~ l₂) (hp : plist l₁ = tt) : plist l₂ = tt :=
 begin
 -- is there a way to clean up this induction re: term introduction?
 -- check out perm_induction_on in perm.lean in mathlib?
 induction h with x l₁ l₂ l₃ ih x y l l₁ l₂,
 { exact hp },
-{ have : plist l₁, by simp [plist] at hp; exact hp.right,
-  have hp2 : plist l₂, by simp [this] at ih; exact ih,
-  have : number_theory.irreducible x, by simp [plist] at hp; exact hp.left,
-  by constructor; assumption
+{ have : plist l₁ = tt, by simp [plist] at hp; exact hp.right,
+  have hp2 : plist l₂ = tt, by simp [this] at ih; exact ih,
+  have : nt.is_prime x = tt, by simp [plist] at hp; exact hp.left,
+  simp [plist], exact and.intro this hp2
 },
-{ have hpx : number_theory.irreducible x, by simp [plist] at hp; exact hp.left,
-  have hpy : number_theory.irreducible y, by simp [plist,plist] at hp; exact hp.right.left,
-  have hpl : plist l, by simp [plist, plist] at hp; exact hp.right.right,
-  have hpyl : plist (y :: l), by constructor; assumption,
-  by constructor; assumption
+{ have hpx : nt.is_prime x = tt, by simp [plist] at hp; exact hp.left,
+  have hpy : nt.is_prime y = tt, by simp [plist,plist] at hp; exact hp.right.left,
+  have hpl : plist l = tt, by simp [plist, plist] at hp; exact hp.right.right,
+  have hpyl : plist (y :: l) = tt, by simp [plist]; exact and.intro hpy hpl,
+  simp [plist], exact and.intro hpx (and.intro hpy hpl)
 },
 { apply ih_2, apply ih_1, assumption }
 end
@@ -164,23 +165,25 @@ lemma sorted_singleton (x : ℕ) : sorted [x] = tt :=
 begin
   simp [sorted, lmax, max],
   by_cases x ≤ 0,
-  { simp [nat.eq_zero_of_le_zero h], from sorry }, -- to_bool issues
-  { simp [h], from sorry } -- to_bool issues
+  { simp [nat.eq_zero_of_le_zero h, nat.eq] },
+  { simp [h, nat.eq] }
 end
 
 lemma sorted_head (x : ℕ) (l : list ℕ) 
-  : sorted (x :: l) = tt ↔ lmax l ≤ x ∧ sorted l :=
+  : sorted (x :: l) = tt ↔ lmax l ≤ x ∧ sorted l = tt :=
 begin
 split,
 { intro h, simp [sorted] at h,
-  have hx : max x (lmax l) = x, from sorry, -- to_bool issues
+  have hx : max x (lmax l) = x, from nat.eq_eq h.right,
   split,
   { rw [←hx], simp [le_max_right] },
-  { from sorry } -- to_bool issues
+  { exact h.left }
 },
 { intro h, simp [sorted],
   have : max x (lmax l) = x, by simp [max_eq_left h.left],
-  from sorry -- to_bool issues
+  apply and.intro,
+  { exact h.right },
+  { exact nat.eq_of_eq this }
 }  
 end
 
@@ -190,7 +193,22 @@ begin
 intro h, induction l with y l ih,
 { simp [sorted_singleton] },
 { by_cases y ≤ x with hxy,
-  { simp [hxy], rw [sorted], admit },
+  { simp [hxy], simp [sorted],
+    apply and.intro,
+    { simp [sorted] at h, exact h.left },
+    { simp [sorted] at h, apply and.intro,
+      { exact h.right },
+      { have : lmax (y :: l) ≤ x,
+        begin
+          simp [lmax],
+          have : max y (lmax l) = y, from nat.eq_eq h.right,
+          rw [←this] at hxy, exact hxy
+        end,
+        have : max x (lmax (y :: l)) = x, from max_eq_left this,
+        exact nat.eq_of_eq this
+      }
+    }
+  },
   { have : x ≤ y ∨ y ≤ x, from le_total x y,
     have hyx : x ≤ y, by simp [hxy] at this; assumption,
     have hyl : lmax l ≤ y, by simp [sorted_head] at h; exact h.right,
@@ -198,11 +216,7 @@ intro h, induction l with y l ih,
     have hyxl : lmax (ordered_insert x l) ≤ y, by 
       simp [perm_lmax this, lmax]; simp [max_le hyx hyl],
 
-    have : sorted l = tt, by
-    begin
-      simp [sorted] at h,
-      from sorry -- to_bool issues
-    end,
+    have : sorted l = tt, by simp [sorted] at h; exact h.left,
     have hxl : sorted (ordered_insert x l) = tt, from ih this,
     
     simp [hxy,sorted_head], apply and.intro,
@@ -230,12 +244,12 @@ But this seems very hard to prove given our definition of perm_sorted. So
 instead we'll get the needed result from less general principles.
 -/
 
-lemma idem_insertion_sort {l : list ℕ} (h : sorted l) : insertion_sort l = l :=
+lemma idem_insertion_sort {l : list ℕ} (h : sorted l = tt) : insertion_sort l = l :=
 --perm_sorted (perm_insertion_sort l) (sorted_insertion_sort l) h
 begin
 induction l with x t ih,
 { simp },
-{ have : sorted t = tt, by simp [sorted] at h; from sorry, -- to_bool issues
+{ have : sorted t = tt, by simp [sorted] at h; exact h.left,
   simp [insertion_sort], rw [ih this],
   induction t, { simp }, { simp [ordered_insert, list.lmax_head h] }
 }

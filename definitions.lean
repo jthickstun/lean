@@ -1,4 +1,11 @@
-namespace number_theory
+namespace nat
+
+def eq : ℕ → ℕ → bool
+| m n := if m = n then tt else ff
+
+end nat
+
+namespace nt
 
 /-
 Basic abstract number-theoretic definitions
@@ -32,7 +39,7 @@ def is_prime : ℕ → bool
 | 1 := ff
 | n := is_composite n = ff
 
-end number_theory
+end nt
 
 /-
 A bunch of stuff about lists of primes that we will need to state FTA
@@ -49,11 +56,11 @@ def lmax : list ℕ → ℕ
 
 def sorted : list ℕ → bool
 | []        := tt
-| (h :: t)  := (max h (lmax t) = h) ∧ sorted t
+| (h :: t)  := nat.eq (max h (lmax t)) h && sorted t
 
-def plist : list ℕ → Prop
+def plist : list ℕ → bool
 | []       := tt
-| (h :: t) := number_theory.irreducible h ∧ plist t
+| (h :: t) := nt.is_prime h && plist t
 
 namespace list
 

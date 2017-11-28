@@ -5,7 +5,7 @@ import .nat_extra
 import .list_extra
 import .decidable_relations
 
-namespace number_theory
+namespace nt
 
 /-
 Uniqueness is subtle as always. Most proofs of this I saw come in one of two flavors:
@@ -149,7 +149,7 @@ Warm-up to FTA: existence of prime factorizations
 -/
 
 -- First we prove existence
-lemma prime_factorization (n : ℕ) : n ≠ 0 → ∃ l : list ℕ, plist l ∧ product l = n :=
+lemma prime_factorization (n : ℕ) : n ≠ 0 → ∃ l : list ℕ, plist l = tt ∧ product l = n :=
 begin
 induction n using nat.case_strong_induction_on with n ih,
 {
@@ -183,7 +183,7 @@ induction n using nat.case_strong_induction_on with n ih,
     or.elim h 
       (assume hm : irreducible m, exists.intro [m]
         (and.intro 
-          (show plist [m], by simp [plist]; from and.intro (hm) (rfl))
+          (show plist [m] = tt, by simp [plist,computable_irreducible]; exact hm)
           (show product [m] = m, by simp [product])))
       (assume hm' : composite m,
       have hab : ∃ a : ℕ, ∃ b : ℕ, a ≠ 1 ∧ b ≠ 1 ∧ m = a*b, by
@@ -265,7 +265,7 @@ lemma plist_lte
   (hp : irreducible p)
   (hq : irreducible q)
   (hd : p ∣ product (q :: t))
-  (hl : plist t ∧ sorted (q :: t))
+  (hl : plist t  = tt ∧ sorted (q :: t) = tt)
 : p ≤ q :=
 begin
   have pn1 : p ≠ 1, from hp.right.left,
@@ -288,13 +288,13 @@ begin
       { exact nat.le_of_eq a_1 }
     },
     { have hqq' : q' ≤ q, from list.lmax_head hl.right,
-      have hiq' : irreducible q', by simp [plist] at hl; exact hl.left,
+      have hiq' : irreducible q', by simp [plist, computable_irreducible] at hl; exact hl.left,
       have hd' : p ∣ product (q' :: t'), by simp [product]; exact a,
-      have hl' : plist t' ∧ sorted (q' :: t'),
+      have hl' : plist t' = tt ∧ sorted (q' :: t') = tt,
       begin
         apply and.intro,
         { simp [plist] at hl, exact hl.right.left },
-        { rw [sorted] at hl, from sorry } -- to_bool issues
+        { rw [sorted] at hl, simp at hl, exact hl.right.left }
       end,
       have : p ≤ q', from ih hiq' hd' hl',
       exact nat.le_trans this hqq'
@@ -303,12 +303,11 @@ begin
 end
 
 theorem prime_uniqueness (n : ℕ) : n ≠ 0 → ∃! l : list ℕ,
-  plist l ∧ sorted l ∧ product l = n :=
+  plist l = tt ∧ sorted l = tt ∧ product l = n :=
 begin
 intro hn,
 have : ∃ l : list ℕ, plist l ∧ product l = n, from prime_factorization n hn,
 apply exists.elim this, intro l, intro hl, 
---let sl := list.insertion_sort l,
 apply exists_unique.intro (list.insertion_sort l),
 { have : l ~ list.insertion_sort l, by symmetry; exact list.perm_insertion_sort l,
   apply and.intro,
@@ -318,7 +317,7 @@ apply exists_unique.intro (list.insertion_sort l),
     { symmetry, rw [←hl.right], apply list.perm_product this }
   }
 },
-{ 
+{
   revert l, induction n using nat.case_strong_induction_on with n ih,
   {
     contradiction
@@ -328,7 +327,7 @@ apply exists_unique.intro (list.insertion_sort l),
     -- seem to need to state these up-front so they get picked up when we move to cases later
     have hslprod : product (list.insertion_sort l) = product l,
       by apply list.perm_product; exact list.perm_insertion_sort l,
-    have hslplist : plist (list.insertion_sort l),
+    have hslplist : plist (list.insertion_sort l) = tt,
     begin
       have : l ~ list.insertion_sort l, by symmetry; exact list.perm_insertion_sort l,
       exact list.perm_plist this hl.left
@@ -343,8 +342,8 @@ apply exists_unique.intro (list.insertion_sort l),
       { simp [product] at hsl', rw [←hsl'.right.right] at hl, rw [hl.right] at hslprod,
         exact eq.symm (list.plist_prod_one hslplist hslprod)
       },
-      { have hiq : irreducible q, by simp [plist] at hsl'; exact hsl'.left,
-        have hip : irreducible p, by simp [plist] at hslplist; exact hslplist.left,
+      { have hiq : irreducible q, by simp [plist, computable_irreducible] at hsl'; exact hsl'.left,
+        have hip : irreducible p, by simp [plist, computable_irreducible] at hslplist; exact hslplist.left,
 
         have hqd : q ∣ product (p :: t),
         begin
@@ -360,13 +359,13 @@ apply exists_unique.intro (list.insertion_sort l),
           exact dvd.intro (product t) (eq.refl (p * product t))
         end,
 
-        have hpt : plist t ∧ sorted (p :: t),
+        have hpt : plist t = tt ∧ sorted (p :: t) = tt,
         begin
           apply and.intro,
           { simp [plist] at hslplist, exact hslplist.right },
           { exact hslsorted }
         end,
-        have hqt' : plist t' ∧ sorted (q :: t'),
+        have hqt' : plist t' = tt ∧ sorted (q :: t') = tt,
         begin
           apply and.intro,
           { simp [plist] at hsl', exact hsl'.right.left },
@@ -386,14 +385,14 @@ apply exists_unique.intro (list.insertion_sort l),
           from eq.symm (nat.div_eq_of_eq_mul_right (nat.pos_of_ne_zero hip.left) (eq.symm hprod)),
 
         let m := product t,
-        have handt : plist t ∧ product t = m, by {apply and.intro, exact hpt.left, simp},
-        have hst : sorted t = tt, by simp [sorted] at hpt; from sorry, -- to_bool issues
-        have handt' : plist t' ∧ sorted t' ∧ product t' = m,
+        have handt : plist t = tt ∧ product t = m, by {apply and.intro, exact hpt.left, simp},
+        have hst : sorted t = tt, by simp [sorted] at hpt; exact hpt.right.left,
+        have handt' : plist t' = tt ∧ sorted t' = tt ∧ product t' = m,
         begin
           apply and.intro,
           { exact hqt'.left },
           { apply and.intro, 
-            { simp [sorted] at hsl', from sorry }, -- to_bool issues
+            { simp [sorted] at hsl', exact hsl'.left },
             { rw [ht',←hpq,←ht] }
           }
         end,
@@ -433,4 +432,4 @@ apply exists_unique.intro (list.insertion_sort l),
 }
 end
 
-end number_theory
+end nt

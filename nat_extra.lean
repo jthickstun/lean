@@ -1,6 +1,17 @@
 import .logic_extra
+import .definitions
 
 namespace nat
+
+lemma eq_eq {m n : ℕ} (h : eq m n = tt) : m = n :=
+begin
+  by_cases m = n with h1,
+  { assumption },
+  { simp [eq, h1] at h, contradiction }
+end
+
+lemma eq_of_eq {m n : ℕ} (h : m = n) : eq m n = tt :=
+by simp [eq,h]
 
 /-
 Useful stuff that should possibly be in the standard library.

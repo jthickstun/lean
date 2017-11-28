@@ -2,7 +2,7 @@ import .definitions
 import .nat_extra
 import .logic_extra
 
-namespace number_theory
+namespace nt
 
 /-
 I don't think we need this, but it's easy enough to prove. 
@@ -264,4 +264,4 @@ split; intro a,
 }
 end
 
-end number_theory
+end nt
