@@ -60,19 +60,19 @@ apply exists_unique.intro (n/m),
                          ... < m                         : bounded_dist hnrk.right (nat.mod_lt n h)
                          ... = 1*m                       : eq.symm (one_mul m),
 
-    have hbound : (dist (m*k') (m*(n/m)))/m < 1, from 
-      (iff.elim_right (nat.div_lt_iff_lt_mul (dist (m*k') (m*(n/m))) 1 h)) this,
+  have hbound : (dist (m*k') (m*(n/m)))/m < 1, from 
+    (iff.elim_right (nat.div_lt_iff_lt_mul (dist (m*k') (m*(n/m))) 1 h)) this,
 
-    have hmul : dist (m*k') (m*(n/m)) = m * dist k' (n/m), 
-      by repeat { rw [mul_comm m] }; from dist_mul k' (n/m) m,
+  have hmul : dist (m*k') (m*(n/m)) = m * dist k' (n/m), 
+    by repeat { rw [mul_comm m] }; from dist_mul k' (n/m) m,
 
-    have : dist k' (n/m) < 1, from 
-    calc dist k' (n/m) = (m * dist k' (n/m)) / m     : by rw [nat.mul_div_right (dist k' (n/m)) h]
-                   ... = (dist (m*k') (m*(n/m))) / m : by rw [hmul]
-                   ... < 1                           : hbound,
+  have : dist k' (n/m) < 1, from 
+  calc dist k' (n/m) = (m * dist k' (n/m)) / m     : by rw [nat.mul_div_right (dist k' (n/m)) h]
+                 ... = (dist (m*k') (m*(n/m))) / m : by rw [hmul]
+                 ... < 1                           : hbound,
 
-    have : dist k' (n/m) = 0, from nat.lt_one_zero (dist k' (n/m)) this,
-    exact (dist_iden k' (n/m)).elim_left this
+  have : dist k' (n/m) = 0, from nat.lt_one_zero (dist k' (n/m)) this,
+  exact (dist_iden k' (n/m)).elim_left this
 }
 end
 
