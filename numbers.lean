@@ -183,7 +183,7 @@ induction n using nat.case_strong_induction_on with n ih,
     or.elim h 
       (assume hm : irreducible m, exists.intro [m]
         (and.intro 
-          (show plist [m] = tt, by simp [plist,computable_irreducible]; exact hm)
+          (show plist [m] = tt, by simp [plist,computable_irreducible]; exact to_bool_true hm)
           (show product [m] = m, by simp [product])))
       (assume hm' : composite m,
       have hab : ∃ a : ℕ, ∃ b : ℕ, a ≠ 1 ∧ b ≠ 1 ∧ m = a*b, by
@@ -288,12 +288,12 @@ begin
       { exact nat.le_of_eq a_1 }
     },
     { have hqq' : q' ≤ q, from list.lmax_head hl.right,
-      have hiq' : irreducible q', by simp [plist, computable_irreducible] at hl; exact hl.left,
+      have hiq' : irreducible q', by simp [plist, computable_irreducible] at hl; exact of_to_bool_true hl.right.left,
       have hd' : p ∣ product (q' :: t'), by simp [product]; exact a,
       have hl' : plist t' = tt ∧ sorted (q' :: t') = tt,
       begin
         apply and.intro,
-        { simp [plist] at hl, exact hl.right.left },
+        { simp [plist] at hl, exact hl.left },
         { rw [sorted] at hl, simp at hl, exact hl.right.left }
       end,
       have : p ≤ q', from ih hiq' hd' hl',
@@ -342,8 +342,8 @@ apply exists_unique.intro (list.insertion_sort l),
       { simp [product] at hsl', rw [←hsl'.right.right] at hl, rw [hl.right] at hslprod,
         exact eq.symm (list.plist_prod_one hslplist hslprod)
       },
-      { have hiq : irreducible q, by simp [plist, computable_irreducible] at hsl'; exact hsl'.left,
-        have hip : irreducible p, by simp [plist, computable_irreducible] at hslplist; exact hslplist.left,
+      { have hiq : irreducible q, by simp [plist, computable_irreducible] at hsl'; exact of_to_bool_true hsl'.right.right.left,
+        have hip : irreducible p, by simp [plist, computable_irreducible] at hslplist; exact of_to_bool_true hslplist.right,
 
         have hqd : q ∣ product (p :: t),
         begin
@@ -362,13 +362,13 @@ apply exists_unique.intro (list.insertion_sort l),
         have hpt : plist t = tt ∧ sorted (p :: t) = tt,
         begin
           apply and.intro,
-          { simp [plist] at hslplist, exact hslplist.right },
+          { simp [plist] at hslplist, exact hslplist.left },
           { exact hslsorted }
         end,
         have hqt' : plist t' = tt ∧ sorted (q :: t') = tt,
         begin
           apply and.intro,
-          { simp [plist] at hsl', exact hsl'.right.left },
+          { simp [plist] at hsl', exact hsl'.left },
           { exact hsl'.right.left }
         end,
 

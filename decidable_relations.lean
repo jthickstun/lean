@@ -227,6 +227,13 @@ split; intro h,
 }
 end
 
+instance decidable_composite : @decidable_pred ℕ composite :=
+begin
+  intro n, by_cases is_composite n = tt,
+  { simp [computable_composite] at h, exact is_true h },
+  { simp [computable_composite] at h, exact is_false h }
+end
+
 /-
 Decidability of 'irreducible' is almost a layup once we have
   (1) the connection between composite and irreducible, i.e. 'not_composite'
@@ -262,6 +269,13 @@ split; intro a,
     }
   }
 }
+end
+
+instance decidable_irreducible : @decidable_pred ℕ irreducible :=
+begin
+  intro p, by_cases is_prime p = tt,
+  { simp [computable_irreducible] at h, exact is_true h },
+  { simp [computable_irreducible] at h, exact is_false h }
 end
 
 end nt

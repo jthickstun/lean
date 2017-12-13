@@ -2,6 +2,10 @@ import .definitions
 import .nat_extra
 import .decidable_relations
 
+def plist : list ℕ → bool
+| []       := tt
+| (h :: t) := nt.irreducible h && plist t
+
 namespace list
 
 /-
@@ -20,8 +24,8 @@ begin
 induction l1,
 { intros, by simp [a_1] },
 { intros, simp [plist] at a_2, simp [plist], apply and.intro,
-  { exact a_2.left },
-  { exact ih_1 a_2.right a_3 }
+  { exact a_2.right },
+  { exact ih_1 a_2.left a_3 }
 }
 end
 
@@ -39,9 +43,11 @@ begin
   induction l with p t ih,
   { simp [product] },
   { simp [product],
-    have ht : plist t = tt, by simp [plist] at h; exact h.right,
+    have ht : plist t = tt, by simp [plist] at h; exact h.left,
     by_cases p = 0 with hp,
-    { simp [plist, nt.computable_irreducible] at h, exact absurd hp h.left.left },
+    { simp [plist] at h,
+      have : nt.irreducible p, from of_to_bool_true h.right,
+      exact absurd hp this.left },
     { have hpg0 : product t ≠ 0, from ih ht,
       --this was incredibly annoying; any ideas how we could make this easier?
       have hp : nat.succ (nat.pred p) = p, from nat.succ_pred_eq_of_pos (nat.pos_of_ne_zero hp),
@@ -62,7 +68,7 @@ begin
   { intro, simp [product] at a,
     have : p = 1, from (nat.unique_unit a).left,
     simp [plist, nt.computable_irreducible] at h,
-    have : p ≠ 1, from h.left.right.left,
+    have : p ≠ 1, from (of_to_bool_true h.right).right.left,
     contradiction
   }
 end
@@ -116,16 +122,16 @@ begin
 -- check out perm_induction_on in perm.lean in mathlib?
 induction h with x l₁ l₂ l₃ ih x y l l₁ l₂,
 { exact hp },
-{ have : plist l₁ = tt, by simp [plist] at hp; exact hp.right,
+{ have : plist l₁ = tt, by simp [plist] at hp; exact hp.left,
   have hp2 : plist l₂ = tt, by simp [this] at ih; exact ih,
-  have : nt.is_prime x = tt, by simp [plist] at hp; exact hp.left,
-  simp [plist], exact and.intro this hp2
+  have : nt.irreducible x, by simp [plist] at hp; exact of_to_bool_true hp.right,
+  simp [plist], exact and.intro hp2 (to_bool_true this)
 },
-{ have hpx : nt.is_prime x = tt, by simp [plist] at hp; exact hp.left,
-  have hpy : nt.is_prime y = tt, by simp [plist,plist] at hp; exact hp.right.left,
-  have hpl : plist l = tt, by simp [plist, plist] at hp; exact hp.right.right,
-  have hpyl : plist (y :: l) = tt, by simp [plist]; exact and.intro hpy hpl,
-  simp [plist], exact and.intro hpx (and.intro hpy hpl)
+{ have hpx : to_bool (nt.irreducible x) = tt, by simp [plist] at hp; exact hp.right.left,
+  have hpy : to_bool (nt.irreducible y) = tt, by simp [plist,plist] at hp; exact hp.right.right,
+  have hpl : plist l = tt, by simp [plist, plist] at hp; exact hp.left,
+  have hpyl : plist (y :: l) = tt, by simp [plist]; exact and.intro hpl hpy,
+  simp [plist], exact and.intro hpl (and.intro hpx hpy)
 },
 { apply ih_2, apply ih_1, assumption }
 end

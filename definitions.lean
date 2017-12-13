@@ -16,7 +16,7 @@ def irreducible (p : ℕ) : Prop := p ≠ 0 ∧ p ≠ 1 ∧ ∀ k : ℕ, (k ∣ 
 def prime (p : ℕ) : Prop := p ≠ 0 ∧ p ≠ 1 ∧ ∀ m n, (p ∣ m*n) → ((p ∣ m) ∨ (p ∣ n))
 
 /-
-Concrete definitions of the concepts above
+Algorithms that decide the relations defined above
 -/
 
 def zero_test : ℕ → bool
@@ -57,10 +57,6 @@ def lmax : list ℕ → ℕ
 def sorted : list ℕ → bool
 | []        := tt
 | (h :: t)  := nat.eq (max h (lmax t)) h && sorted t
-
-def plist : list ℕ → bool
-| []       := tt
-| (h :: t) := nt.is_prime h && plist t
 
 namespace list
 
