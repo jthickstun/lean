@@ -20,46 +20,45 @@ avoid talking about negative numbers. The tradeoff is that we need to develop so
 theory about the distance function (see .distance).
 -/
 lemma division (m n : ℕ) (h: m > 0) : ∃!k : ℕ, ∃!r : ℕ, n = m*k + r ∧ r < m :=
-exists_unique.intro (n/m) 
-  (exists_unique.intro (n%m)
-    (and.intro
-      (by simp [nat.mod_add_div n m]) 
-      (nat.mod_lt n h))
-    (assume r' : ℕ, assume hr' : n = m*(n/m) + r' ∧ r' < m, 
-    have m*(n/m) + (n%m) = m*(n/m) + r', from
+begin
+apply exists_unique.intro (n/m),
+{ apply exists_unique.intro (n%m),
+  { apply and.intro,
+    { simp [nat.mod_add_div n m] },
+    { exact nat.mod_lt n h }
+  },
+  { intro r', intro hr',
+    have : m*(n/m) + (n%m) = m*(n/m) + r', from
     calc m*(n/m) + (n%m) = n             : by simp [nat.mod_add_div n m]
                     ...  = m*(n/m) + r'  : by rw [←(and.left hr')],
-    show r' = n%m, by simp [add_left_cancel this])) 
-  (assume k' : ℕ, assume he: ∃! (r : ℕ), n = m * k' + r ∧ r < m,
-  exists_unique.elim he
-    (assume r' : ℕ, assume hnrk : n = m*k' + r' ∧ r' < m,
-    assume ha : ∀ (y : ℕ), n = m*k' + y ∧ y < m → y = r',
-    have hdiv : m*(n/m) + (n%m) = n, by simp [nat.mod_add_div n m],
+    show r' = n%m, by simp [add_left_cancel this]
+  }
+},
+{ 
+  intro k', intro he, apply exists_unique.elim he,
+  intro r', intro hnrk, intro ha,
+  have hdiv : m*(n/m) + (n%m) = n, by simp [nat.mod_add_div n m],
 
-    -- why did I need to write this out where the hnrk rearrangement just works below?
-    have hrearrange : n - (n%m) = m*(n/m), from 
-    calc n - (n%m) = m*(n/m) + (n%m) - (n%m) : by rw [hdiv]
-               ... = m*(n/m)                 : by simp only [nat.add_sub_cancel],
+  -- why did I need to write this out where the hnrk rearrangement just works below?
+  have hrearrange : n - (n%m) = m*(n/m), from 
+  calc n - (n%m) = m*(n/m) + (n%m) - (n%m) : by rw [hdiv]
+             ... = m*(n/m)                 : by simp only [nat.add_sub_cancel],
 
-    -- again, why is hdiv more of a pain to deal with than hnrk?
-    have hrln : r' ≤ n, from
-      have r' + m*k' = n, by simp [hnrk.left],
-      nat.le.intro (this),
-    have hnmln : n%m ≤ n, from
-      have m*(n/m) + n%m = n, by simp [hdiv],
-      have n%m + m*(n/m) = n, by rw [nat.add_comm, this],
-      nat.le.intro (this),
+  -- again, why is hdiv more of a pain to deal with than hnrk?
+  have hrln : r' ≤ n, from
+    have r' + m*k' = n, by simp [hnrk.left],
+    nat.le.intro (this),
+  have hnmln : n%m ≤ n, from
+    have m*(n/m) + n%m = n, by simp [hdiv],
+    have n%m + m*(n/m) = n, by rw [nat.add_comm, this],
+    nat.le.intro (this),
 
-    have dist (m*k') (m*(n/m)) < 1*m, from
-    calc dist (m*k') (m*(n/m)) = dist (n - r') (m*(n/m))   : by rw [hnrk.left]; simp only [nat.add_sub_cancel]
-                           ... = dist (n - r') (n - (n%m)) : by rw [hrearrange]
-                           ... = dist r' (n%m)             : dist_cancel_sub 
-                                                               (hrln)
-                                                               (hnmln)
-                           ... < m                         : bounded_dist 
-                                                               (hnrk.right)
-                                                               (nat.mod_lt n h)
-                           ... = 1*m                       : eq.symm (one_mul m),
+  have : dist (m*k') (m*(n/m)) < 1*m, from
+  calc dist (m*k') (m*(n/m)) = dist (n - r') (m*(n/m))   : by rw [hnrk.left]; simp only [nat.add_sub_cancel]
+                         ... = dist (n - r') (n - (n%m)) : by rw [hrearrange]
+                         ... = dist r' (n%m)             : dist_cancel_sub hrln hnmln
+                         ... < m                         : bounded_dist hnrk.right (nat.mod_lt n h)
+                         ... = 1*m                       : eq.symm (one_mul m),
 
     have hbound : (dist (m*k') (m*(n/m)))/m < 1, from 
       (iff.elim_right (nat.div_lt_iff_lt_mul (dist (m*k') (m*(n/m))) 1 h)) this,
@@ -67,13 +66,15 @@ exists_unique.intro (n/m)
     have hmul : dist (m*k') (m*(n/m)) = m * dist k' (n/m), 
       by repeat { rw [mul_comm m] }; from dist_mul k' (n/m) m,
 
-    have dist k' (n/m) < 1, from 
+    have : dist k' (n/m) < 1, from 
     calc dist k' (n/m) = (m * dist k' (n/m)) / m     : by rw [nat.mul_div_right (dist k' (n/m)) h]
                    ... = (dist (m*k') (m*(n/m))) / m : by rw [hmul]
                    ... < 1                           : hbound,
 
-    have dist k' (n/m) = 0, from nat.lt_one_zero (dist k' (n/m)) this,
-    show k' = n/m, from (dist_iden k' (n/m)).elim_left this))
+    have : dist k' (n/m) = 0, from nat.lt_one_zero (dist k' (n/m)) this,
+    exact (dist_iden k' (n/m)).elim_left this
+}
+end
 
 /-
 Euclid's lemma irreducible p → prime p is used as a lemma to prove the 
@@ -87,62 +88,70 @@ whether tactics can help all that much, although at least it would kill
 off a lots of irritating stupid parentheses.
 -/
 lemma euclid (p : ℕ) : irreducible p ↔ prime p :=
-iff.intro (
 begin
-intro h,
-have hi : irreducible p, from h,
-simp [irreducible] at h, simp [prime],
-by_cases (p = 0) with h0,
-{ have : ¬p = 0, from h.right.left, contradiction },
-{ by_cases (p = 1) with h1,
-  { have : ¬p = 1, from h.left, contradiction },
-  { apply and.intro, exact h1, apply and.intro, exact h0,
-    have ha : ∀ (k : ℕ), k ∣ p → k = p ∨ k = 1, from h.right.right,
-    intros, by_cases (m % p = 0) with hmp,
-    { have : p ∣ m, by simp [nat.dvd_iff_mod_eq_zero]; exact hmp,
-      apply or.intro_left, exact this
-    },
-    { have : ¬ p ∣ m, by simp [nat.dvd_iff_mod_eq_zero]; exact hmp,
-      have hpdiv : p ∣ nat.gcd (p*n) (m*n), by simp [dvd_gcd nat.m_dvd_mn a],
-      apply or.intro_right,
-      have : nat.gcd (p*n) (m*n) = n, from calc
-             nat.gcd (p*n) (m*n) = n * nat.gcd p m  : by simp [gcd_mul_right p n m]
-                             ... = n                : by simp [p_not_dvd_coprime this hi],
-      from this ▸ hpdiv
+apply iff.intro,
+{ intro h,
+  have hi : irreducible p, from h,
+  simp [irreducible] at h, simp [prime],
+  by_cases (p = 0) with h0,
+  { have : ¬p = 0, from h.right.left, contradiction },
+  { by_cases (p = 1) with h1,
+    { have : ¬p = 1, from h.left, contradiction },
+    { apply and.intro, exact h1, apply and.intro, exact h0,
+      have ha : ∀ (k : ℕ), k ∣ p → k = p ∨ k = 1, from h.right.right,
+      intros, by_cases (m % p = 0) with hmp,
+      { have : p ∣ m, by simp [nat.dvd_iff_mod_eq_zero]; exact hmp,
+        apply or.intro_left, exact this
+      },
+      { have : ¬ p ∣ m, by simp [nat.dvd_iff_mod_eq_zero]; exact hmp,
+        have hpdiv : p ∣ nat.gcd (p*n) (m*n), by simp [dvd_gcd nat.m_dvd_mn a],
+        apply or.intro_right,
+        have : nat.gcd (p*n) (m*n) = n, from calc
+              nat.gcd (p*n) (m*n) = n * nat.gcd p m  : by simp [gcd_mul_right p n m]
+                              ... = n                : by simp [p_not_dvd_coprime this hi],
+        from this ▸ hpdiv
+      }
+    }
+  }
+},
+{ intro hprime,
+  have h : ∀ m n, (p ∣ m*n) → ((p ∣ m) ∨ (p ∣ n)), from and.elim_right (and.elim_right hprime),
+  apply and.intro,
+  { exact and.elim_left hprime },
+  { apply and.intro,
+    { exact and.elim_left (and.elim_right hprime) },
+    { intro k, intro hkp, apply dvd.elim hkp,
+      intro r, intro hrkp,
+      have : r*k ≠ 0, by simp only [nat.mul_comm]; rw [←hrkp]; apply (and.left hprime),
+      have nzrk : r ≠ 0 ∧ k ≠ 0, from nat.no_zero_divisors this,
+      have hrgz : r > 0, from nat.pos_of_ne_zero (and.left nzrk),
+      have hkgz : k > 0, from nat.pos_of_ne_zero (and.right nzrk),
+      have : p ∣ r*k, from exists.intro 1 (by simp [hrkp]),
+      apply or.elim (h r k this),
+      { intro hpr, apply dvd.elim hpr, intro s, intro hspr,
+        have : 1*r = (s*k)*r, from
+        calc 1*r = r           : one_mul r
+        ...     = s*p         : by simp [hspr,nat.mul_comm]
+        ...     = s*(k*r)     : by simp [hrkp,nat.mul_comm]
+        ...     = (s*k)*r     : eq.symm (nat.mul_assoc s k r),
+        have : s*k = 1, from nat.eq_of_mul_eq_mul_right hrgz (eq.symm this),
+        apply or.intro_left, exact and.right (nat.unique_unit this)
+      },
+      { intro hpk, apply dvd.elim hpk, intro s, intro hspk,
+        have : 1*k = (s*r)*k, from 
+        calc 1*k = k           : one_mul k
+        ...     = s*p         : by rw [hspk]; simp
+        ...     = s*(r*k)     : by simp [hrkp]
+        ...     = (s*r)*k     : eq.symm (nat.mul_assoc s r k),
+        have : 1 = s*r, from nat.eq_of_mul_eq_mul_right hkgz this,
+        have : s = 1, from and.left (nat.unique_unit (eq.symm this)),
+        have : 1*p = k, by simp [this,hspk],
+        apply or.intro_right, exact eq.symm (this ▸ eq.symm (nat.one_mul p))
+      }
     }
   }
 }
-end)
-(assume hprime : p ≠ 0 ∧ p ≠ 1 ∧ ∀ m n, (p ∣ m*n) → ((p ∣ m) ∨ (p ∣ n)),
-have h : ∀ m n, (p ∣ m*n) → ((p ∣ m) ∨ (p ∣ n)), from and.elim_right (and.elim_right hprime),
-and.intro (and.elim_left hprime) (and.intro (and.elim_left (and.elim_right hprime)) 
-(assume k, assume hkp : k ∣ p, 
-dvd.elim hkp (
-(assume r, assume hrkp : p = k*r,
-  have r*k ≠ 0, by simp only [nat.mul_comm]; rw [←hrkp]; apply (and.left hprime),
-  have nzrk : r ≠ 0 ∧ k ≠ 0, from nat.no_zero_divisors this,
-  have hrgz : r > 0, from nat.pos_of_ne_zero (and.left nzrk),
-  have hkgz : k > 0, from nat.pos_of_ne_zero (and.right nzrk),
-  have p ∣ r*k, from exists.intro 1 (by simp [hrkp]),
-  or.elim (h r k this)
-    (assume hpr : p ∣ r, dvd.elim hpr (assume s, assume hspr : r = p*s,
-    have 1*r = (s*k)*r, from
-    calc 1*r = r           : one_mul r
-     ...     = s*p         : by simp [hspr,nat.mul_comm]
-     ...     = s*(k*r)     : by simp [hrkp,nat.mul_comm]
-     ...     = (s*k)*r     : eq.symm (nat.mul_assoc s k r),
-    have s*k = 1, from nat.eq_of_mul_eq_mul_right hrgz (eq.symm this),
-    or.intro_left _ (and.right (nat.unique_unit this))))
-    (assume hpk : p ∣ k, dvd.elim hpk (assume s, assume hspk : k = p*s,
-    have 1*k = (s*r)*k, from 
-    calc 1*k = k           : one_mul k
-     ...     = s*p         : by rw [hspk]; simp
-     ...     = s*(r*k)     : by simp [hrkp]
-     ...     = (s*r)*k     : eq.symm (nat.mul_assoc s r k),
-    have 1 = s*r, from nat.eq_of_mul_eq_mul_right hkgz this,
-    have s = 1, from and.left (nat.unique_unit (eq.symm this)),
-    have 1*p = k, by simp [this,hspk],
-    or.intro_right _ (eq.symm (this ▸ eq.symm (nat.one_mul p))))))))))
+end
 
 /-
 Warm-up to FTA: existence of prime factorizations
