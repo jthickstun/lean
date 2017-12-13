@@ -164,20 +164,14 @@ induction n using nat.case_strong_induction_on with n ih,
 {
   intros; contradiction
 },
-{
-  -- this is a kind of messy way to handle induction from 1
-  let m := nat.succ n,
-  from assume hmz : m ≠ 0,
-  have one_or_more : m = 1 ∨ (m ≠ 0 ∧ m ≠ 1), by {
-    cases n, exact or.inl rfl, exact or.inr (and.intro hmz 
-      (λ k, nat.no_confusion k (λ k, nat.no_confusion k)))
-  },
-  or.elim one_or_more
-    (assume h1: m = 1, exists.intro [] 
-      (and.intro 
-        (show plist [], from rfl)
-        (show product [] = m, by simp [h1, product])))
-    (assume hg1: m ≠ 0 ∧ m ≠ 1,
+{ cases n with n,
+  { intro, apply exists.intro [], apply and.intro, simp [plist], simp [product] },
+  { intro hmz,
+    let m := nat.succ (nat.succ n),
+    have hg1 : m ≠ 0 ∧ m ≠ 1, by { apply and.intro,
+      { exact nat.succ_ne_zero (nat.succ n) },
+      { exact λ k, nat.no_confusion k (λ k, nat.no_confusion k) }
+    },
     -- this is the big excluded middle claim!
     -- we did all that legwork in .decidable_relations for this
     have h : irreducible m ∨ composite m, by {
@@ -189,20 +183,17 @@ induction n using nat.case_strong_induction_on with n ih,
         apply or.intro_left, exact (not_composite hg1).1 hicm 
       }
     },
-    or.elim h 
-      (assume hm : irreducible m, exists.intro [m]
-        (and.intro 
-          (show plist [m] = tt, by simp [plist,computable_irreducible]; exact to_bool_true hm)
-          (show product [m] = m, by simp [product])))
-      (assume hm' : composite m,
+    apply or.elim h,
+    { intro hm, apply exists.intro [m], apply and.intro,
+      { simp [plist], exact to_bool_true hm },
+      { simp [product] }
+    },
+    { intro hm',
       have hab : ∃ a : ℕ, ∃ b : ℕ, a ≠ 1 ∧ b ≠ 1 ∧ m = a*b, by
         delta composite at hm'; exact hm'.right,
-      -- is there a more elegant way to handle multiple existential quantifiers?
-      -- I couldn't get ∃ a b, m = a*b to work...
-      exists.elim hab (assume a, assume hab1 : ∃ b : ℕ, a ≠ 1 ∧ b ≠ 1 ∧ m = a*b,
-      exists.elim hab1 (assume b, assume hprod : a ≠ 1 ∧ b ≠ 1 ∧ m = a*b,
-      have hrl : ∃ rl, plist rl ∧ product rl = a, from 
-        have han : a ≤ n, by {
+      cases hab with a hab1, cases hab1 with b hprod,
+      have hrl : ∃ rl, plist rl ∧ product rl = a, by {
+        have han : a ≤ nat.succ n, by {
           have : a ∣ m, from dvd.intro b (eq.symm hprod.right.right),
           have haltm : a ≤ m, from nat.le_of_dvd (nat.pos_of_ne_zero hmz) this,
           have hanm : a ≠ m, by {
@@ -220,13 +211,14 @@ induction n using nat.case_strong_induction_on with n ih,
         },
         have hanz : a ≠ 0, by { 
           have : a*b = m, from eq.symm hprod.right.right,
-          have : a*b ≠ 0, by rw [←this] at hmz; assumption,
+          have : a*b ≠ 0, by rw [this]; exact hg1.left,
           apply (nat.no_zero_divisors this).left
         },
-        ih a han hanz,
-      have hsl : ∃ sl, plist sl ∧ product sl = b, from
+        apply ih a han hanz
+      },
+      have hsl : ∃ sl, plist sl ∧ product sl = b, by {
         -- this whole argument is almost copy-pasted from case above
-        have hbn : b ≤ n, by {
+        have hbn : b ≤ nat.succ n, by {
           have hmba : m = b*a, by simp [nat.mul_comm, hprod.right.right],
           have : b ∣ m, from dvd.intro a (eq.symm hmba),
           have haltm : b ≤ m, from nat.le_of_dvd (nat.pos_of_ne_zero hmz) this,
@@ -243,20 +235,20 @@ induction n using nat.case_strong_induction_on with n ih,
         },
         have hbnz : b ≠ 0, by {
           have : a*b = m, from eq.symm hprod.right.right,
-          have : a*b ≠ 0, by rw [←this] at hmz; assumption,
+          have : a*b ≠ 0, by rw [this]; exact hg1.left,
           apply (nat.no_zero_divisors this).right
         },
-        ih b hbn hbnz,
-      exists.elim hrl (assume rl : list ℕ, assume hrla: plist rl ∧ product rl = a,
-      exists.elim hsl (assume sl : list ℕ, assume hslb: plist sl ∧ product sl = b,
-      exists.intro (rl ++ sl)
-        (and.intro 
-          (show plist (rl ++ sl), from list.plist_concat rl sl (and.left hrla) (and.left hslb))
-          (show product (rl ++ sl) = m,
-            by rw [list.product_concat rl sl,
-                   and.right hrla,
-                   and.right hslb,
-                   hprod.right.right]))))))))
+        exact ih b hbn hbnz,
+      },
+      apply exists.elim hrl, intro rl, intro hrla,
+      apply exists.elim hsl, intro sl, intro hslb,
+      apply exists.intro (rl ++ sl), apply and.intro,
+      { exact list.plist_concat rl sl (and.left hrla) (and.left hslb) },
+      { rw [list.product_concat rl sl, and.right hrla, and.right hslb],
+        exact eq.symm hprod.right.right
+      }
+    }
+  }
 }
 end
 
