@@ -12,8 +12,8 @@ This is fine from a formal perspective, but the pedagogy leaves something to
 be desired. One question is whether we need to talk about Euclid's algorithm
 at all? Is it possible to give a conceptual definition of gcd, get these 5
 facts and proceed from there to Euclid's lemma? Are there going to be
-existence/uniqueness issues that force us to write down the computational
-definition anyway if we go this route? 
+decidability issues that force us to write down the computational definition
+anyway if we go this route? 
 -/
 
 -- ripped from mathlib
