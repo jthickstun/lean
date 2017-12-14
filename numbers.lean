@@ -80,12 +80,6 @@ end
 Euclid's lemma irreducible p → prime p is used as a lemma to prove the 
 fundamental theorem of arithmetic in the traditional development. The
 other direction also holds.
-
-I wrote the proof of the converse before I figured out how to use tactics;
-can it be made more elegant? Most of the book-keeping seems to come from
-chasing down quantifiers and propositonal connectives, so it's not clear
-whether tactics can help all that much, although at least it would kill
-off a lots of irritating stupid parentheses.
 -/
 lemma euclid (p : ℕ) : irreducible p ↔ prime p :=
 begin
